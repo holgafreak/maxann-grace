@@ -1,0 +1,420 @@
+;;; fractal midi-thread generator
+;;; Matti Koskinen 1999
+;;; mjkoskin@sci.fi
+(define nil #f)
+(define *notes* nil)
+(define *rhythms* nil)
+#|
+(defun kamtorus(max &key (angle 1.3) (F 0.9) (step 0.2)  (stop 1) (orb -1) (comp 10))
+  (let ((xold)
+	(yold)
+	(x)
+	(y)
+	(maxl)
+	(skip)
+	(compr comp)
+	(o orb)
+	(output))
+    (loop while (< o stop) do
+	(setf o (+ o step))
+	(setf xold (/ o 3))
+	(setf yold (/ o 3))
+	(setf maxl (+ max 100))
+	(setf skip 100)
+	(loop for i from 0 below maxl do
+	      (setf x (+ (* xold (cos angle)) (* (- (* xold xold) yold)  (sin angle))))
+	      (setf y (- (* xold (sin angle)) (* (- (* xold xold) (* F yold)) (cos angle))))
+	      (when (< skip 0)
+		(decf compr)
+		(when (= compr 0)
+		  (push (list x y) output)
+		  (setf compr comp)))
+	      (decf skip)
+	      (setf xold x)
+	      (setf yold y)))
+    (reverse output)))
+
+(defun sign(x)
+  (if (< x 0)
+      (- 1)
+    1))
+  
+(defun threeply (max &key (a -55) (b -1) (c -42) (comp 1))
+  (let ((xold 0)
+	(yold 0)
+	(x)
+	(y)
+	(output)
+	(compr comp))
+    (loop for i from 0 below max do
+	  (setf x (- (+ (- yold (* (sign xold) (abs (sin xold)) (cos b))) c) 
+		     (* xold (sin (+ a b c)))))
+	  (setf y (- a xold))
+	  (decf compr)
+	  (when (= 0 compr)
+	    (push (list x y) output)
+	    (setf compr comp))
+	  (setf xold x)
+	  (setf yold y))
+    (reverse output)))
+
+(defun lorenz (max &key  (dt 0.02) (a 5) (b 15) (c 1) (comp 1))
+  (let ((xold 1)
+	(yold 1)
+	(zold 1)
+	(x)
+	(y)
+	(z)
+	(output)
+	(tt dt)
+	(compr comp))
+    (loop for i from 0 below max do
+	  (setf x (+ xold (* (- a) xold tt) (* a yold tt)))
+	  (setf y (- (+ yold (* b xold tt)) (* yold tt) (* zold xold tt)))
+	  (setf z (+ zold (* (- c) zold tt) (* xold yold tt)))
+; (format t "~D ~S ~S ~S ~%" i x y z)
+	  (decf compr)
+	  (when (= 0 compr)
+	    (push (list x y) output)
+	    (setf compr comp))
+	  (setf xold  x)
+	  (setf yold y)
+	  (setf zold z))
+    (reverse output)))
+
+(defun pickover(max x0 y0 z0 &key (a 2.24) (b 0.43) (c -0.65) (d -2.43) (comp 1))
+  (let ((xold x0)
+	(yold y0)
+	(zold z0)
+	(x)
+	(y)
+	(z)
+	(compr comp)
+	(output))
+    (loop for i from 0 below max do
+	  (setf x (- (sin (* a yold)) (* zold (cos (* b xold)))))
+	  (setf y (- (* zold (sin (* c xold))) (cos (* d yold))))
+	  (setf z (sin xold))
+	  (decf compr)
+	  (when (= compr 0)
+	    (push (list x y) output)
+	    (setf compr comp))
+	  (setf xold x)
+	  (setf yold y)
+	  (setf zold z))
+    (reverse output)))
+
+(define* (henon max x0 y0 (a 1.4) (b 0.3) (comp 1))
+  (let ((x x0)
+       	(xold 0)
+       	(compr comp)
+       	(out '())
+       	(y y0))
+    (loop for i from 0 below max do
+       	  (set! xold x)
+       	  (set! x (- (1+ y) (* a x x)))
+       	  (set! y (* b xold))
+          (push (list x y) out))
+    (reverse out)))
+	
+
+(defun duffing(max &key (comp 1))
+  (let ((a (random 1.0))
+	(b (random 1.0))
+	(x0 (- (* (random 1.0) 7) 3.5))
+	(y0 (- (* (random 1.0) 7) 3.5))
+	(z0 (- (* (random 1.0) 7) 3.5))
+	(c (- (* (random 1.0) 2) 1))
+	(f 10)
+	(x)
+	(y)
+	(z) (d1) (d2) (d3)
+	(out)
+	(compr comp)
+	(cnt (+ 100 max))
+	(lc 100))
+    (setf x x0)
+    (setf y y0)
+    (setf z z0)
+    (loop for i from 0 below cnt do
+	  (when (< lc 0)
+	    (decf compr)
+	    (when (= compr 0)
+	      (push (list x y) out)
+	      (setf compr comp)))
+	  (loop for j from 0 below 5 do
+		(setf d1 y)
+		(setf d2 (+ (- (+ (* a x x x) x (* b y))) (* f (cos z))))
+		(setf d3 c)
+		(setf x (+ x (* d1 0.01)))
+		(setf y (+ y (* d2 0.01)))
+		(setf z (+ z (* d3 0.01))))
+	  (decf lc))
+    (reverse out)))
+	    
+	  
+    
+(defun hopalong(max &key (a 3) (comp 1))
+  (let ((b (sin a))
+	(c (cos a))
+	(x 0)
+	(y 0)
+	(xx)
+	(yy)
+	(sgn)
+	(compr comp)
+	(cnt (+ max 100))
+	(lc 100)
+	(out))
+
+    (loop for i from 0 below cnt do
+	  (when (< lc 0)
+	    (decf compr)
+	    (when (= compr 0)
+	      (push (list x y) out)
+	      (setf compr comp)))
+	  (if (>= x 0)
+	      (setf sgn 1)
+	    (setf sgn -1))
+	  (setf xx (- y (* sgn ( sqrt (abs (- (* b x) c))))))
+	  (setf yy (- a x))
+	  (setf x xx)
+	  (setf y yy)
+	  (decf lc))
+    (reverse out)))
+
+(define* (mira max x0 y0 (a0 0.1) (b 0.9) (comp 1))
+  (let ((x x0)
+	(a a0)
+	(c 0)
+	(y y0)
+	(w 0)
+	(z 0)
+	(u 0)
+	(compr comp)
+	(lc 100)
+	(out '())
+	(cnt 0))
+    (set! cnt (+ max 100))
+    (set! c (- 2 (* 2 a)))
+    (set! w (+ (* a x) (* c x (/ x (1+ (* x x))))))
+    (loop for i from 0 below cnt do
+	  (when (< lc 0)
+	    ;(set! compr (- compr 1))
+	    ;(when (= compr 0)
+	      (push (list x y) out)
+	     ; (set! compr comp))
+	    )
+	  (set! z x)
+	  (set! x (+ (* b y) w))
+	  (set! u (* x x))
+	  (set! w (+ (* a x) (* c (/ u (+ 1 u)))))
+	  (set! y (- w z))
+	  (set! lc (- lc 1)))
+    
+    (reverse out)))
+|#
+
+(define*    (ikeda max x0 y0  (c1 -0.1) (c2 0.99) (c3 -0.2) (comp 1))
+  (let ((x x0)
+	(y y0)
+	(xold 0)
+	(yold 0)
+	(rho 1)
+	(output '())
+	(temp 0)
+	(compr comp)
+	(sintemp 0)
+	(costemp 0)
+	(xt 0))
+    (loop for i from 1 to max do
+	  (set! temp (- c1 (/ c3 (+ 1 (* x x) (* y y)))))
+	  (set! sintemp (sin temp))
+	  (set! costemp (cos temp))
+	  (set! xt (+ rho (* c2 (- (* x costemp) (* y sintemp)))))
+	  (set! y (* c2 (+ (* x sintemp) (* y costemp))))
+	  (set! x xt)
+	  (set! compr (- compr 1))
+	  (when (= compr 0)
+	    (push (list x y) output)
+	    (set! compr comp)))
+    (reverse output)))
+	  
+(ikeda 100 0.9 0.89)
+(list 0 0)
+;;; now creates chromatic scale
+(define (generate-notes)
+  (let ((rhy 0)
+	(note-data nil))
+	;(rhy nil))
+    (set! *notes* '())
+    (loop for i from 0 below 96 do
+	  (push (list i
+		 (pick '(1.0 1.333 0.666))) note-data))
+    (loop for i from 1 below 5 do
+	  (push (/ 2.0 (expt 2 i)) rhy))
+    (push -0.5 rhy)
+    (push -1.0 rhy)
+    (set! *notes* (reverse note-data))
+    (set! *rhythms* (reverse rhy))
+))
+    
+#|
+(define* (fract-music amp fract-pairs  (f-rhythm nil) (note-ex '(36 95)) (rhythm-ex '(0 5)) (func 'copy-list) (compr 1))
+  (let ((x2 0)
+;(f-rhythm nil) (note-ex '(24 95)) (rhythm-ex '(0 5)) (func 'copy-list) (compr 1)
+	(y2 0)
+	(note-val 0)
+	(y 0)
+	(yold 0)
+	(maxx 0)
+	(minx 0)
+	(maxy 0)
+	(miny 0)
+  (time 0)
+(a 0)
+	(compression 1)
+	(f-p nil)
+	(wait-time 0)
+	(angle 0))
+
+;;;    (generate-notes)
+    (set! f-p fract-pairs)
+    (loop for n in f-p do
+	  (set! x2 (car n))
+	  (set! y2 (cadr n))
+	  (if (> x2 maxx)
+	      (set! maxx x2))
+	  (if (< x2 minx)
+	      (set! minx x2))
+	  (if (> y2 maxy)
+	      (set! maxy y2))
+	  (if (< y2 miny)
+	      (set! miny y2)))
+    (format #t "max x ~S min x ~S max y ~S min y ~S~%" maxx minx maxy miny)
+    (set! maxy (/ (- (cadr rhythm-ex) (car rhythm-ex)) (- maxy miny))) ;; rhythms now scaled
+    (set! maxx (/ (- (cadr note-ex) (car note-ex)) (- maxx minx)))
+    (process for i from 0 below (length fract-pairs) do
+             (set! a amp)
+	     (set! x2 (car (nth  fract-pairs i)))
+	     (set! y2 (cadr (nth fract-pairs i)))
+	     (set! wait-time 0.1)
+	     ;(when (= compression 0)
+	     (set! note-val (trig x2 y2 maxx 
+				  minx maxy miny (car note-ex) 
+				  (car rhythm-ex) f-rhythm))
+	     ;(setf wait-time 0)
+	     (if (< 0 (cadr note-val))
+        (begin
+    	     (set! wait-time (abs (cadr note-val)))
+          (set! a 0)))
+      (if (< wait-time 0.01)
+        (set! wait-time 0.1))
+		   
+
+	     (mp:midi time wait-time (car note-val) 0.6 0)
+	     wait (+ wait-time 0.1)
+      (set! time (+ time wait-time 0.1)))
+
+
+
+	     ;  (setf compression compr))
+	     ;(setf compression (1- compression)))))
+))
+(note 4)
+;;; return list of polar coordinates
+(defun polar (f-list)
+  (let ((out nil)
+	(r 0)
+	(f1 nil) (f2 nil) (f)
+	(a))
+    (loop for i from 0 below (length f-list) do
+	  (setf f (nth i f-list))
+	  (setf f1 (car f))
+	  (setf f2 (cadr f))
+	  (setf r (sqrt (+ (* f1 f1) (* f2 f2))))
+	  (if (= 0 f1)
+	      (setf a 1.570796)
+	    (setf a (atan (/ f2 f1))))
+	  (push (list r a) out))
+    (reverse out)))
+
+;;; func to calc note and rhythm	 
+(define (trig x y maxx minx  maxy miny start-n start-r mode)
+  (let ((note-v 0)
+        (note-val 0)
+	(picker 0)
+	(rhyt 0)
+	(diff 0)
+	(rpick 0))
+  (if (<   minx 0)
+      (set! diff (- x minx))
+    (set! diff (+ x minx)))
+  (set! picker (round (+ (* diff maxx) start-n)))
+
+  (if (> picker (length *notes*))
+      (set! picker (- (length *notes*) 1)))
+  (if (< picker 0)
+    (set! picker 0))
+  (set! note-val (nth *notes* picker))
+  ;(unless (equal? mode nil)
+          (if (<  miny 0)
+           	(set! diff (- y miny))
+            (set! diff (+ y miny)))
+          (set! picker (round (+ (* diff maxy) start-r)))
+          (if (< picker 0)
+           	(set! picker 0))
+          (if (> picker (length *rhythms*))
+           	(set! picker (- (length *rhythms*) 1)))
+          (set! rhyt (nth *rhythms* picker))
+          (set! note-v (list (car note-val) rhyt))
+          
+          ;(format #t "~S ~S ~S~%" x y note-val)
+          note-v))
+  
+  (generate-notes)
+*rhythms*
+(define xx nil)
+xx
+(equal? xx nil)
+;(define fp nil)
+(define fp  (ikeda 100 -0.5 -0.9))
+(define fpm (mira 100 -0.99 0.8))
+(define fph (henon 100 0.96 0.8))
+fph
+(fract-music 0.7 fpm)
+(trig -3 -14 11 -5 0.8 -18 60 0.1 nil)
+(sprout (fract-music 0.7 fph :note-ex '(60 85)))
+(mp:midi 1 .5 60 .6 0)
+;sort of automated midi-generator based on fractals.
+
+to use first generate appropriate scale of notes in *notes*
+and rhythms in *rhythm* (generate-notes) creates chromatic
+scale and random rhythms.
+
+then create a list of x-y -pairs with a fractal-func.
+some fractals are included and their parameters work
+for at least 100 pairs. as there's no check for over-
+or underflow, getting parameters right are bit difficult
+so that values are reasonable.
+
+then with fract-music generate thread of midi-notes.
+
+parameters for frac-music are:
+
+(defun fract-music (nam tim amp fract-pairs  &key 
+nam:                name of thread
+tim:                start time (doesn't matter, but must be present)
+(f-rhythm nil)      nil=use random rhythm, t=use calculated rhythm from fract
+(note-ex '(24 95))  note expansion, lowest and highest index
+(rhythm-ex '(0 5))  rhythm expansion as above
+(func 'copy-list)   func to do something for the fract-list, polar is provided
+(compr 1))          compression. when > 1 every nth note is generated
+
+
+also in fract-funcs compression can be set to to take every nth fract val.
+
+|#
+
+
+

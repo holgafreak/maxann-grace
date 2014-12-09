@@ -1,0 +1,64 @@
+;;; -*- syntax: Lisp; font-size: 16; line-numbers: no; 
+;;; set the filepaths
+(define (do-it)
+    (let ((f (open-output-file "/tmp/tester.dat")))
+     (write 80 f)
+     (newline f); tempo
+     (loop for n from 0 below 12 do ; weights
+	  (write (between 0 20) f)
+   (newline f))
+
+     (write 9 f) ; quali params (5 of them)
+     (newline f)
+     (write 5 f) ; quali params (5 of them)
+     (newline f)
+     (write 10 f) ; quali params (5 of them)
+     (newline f)
+     (write 2 f) ; quali params (5 of them)
+     (newline f)
+     (write 10 f) ; quali params (5 of them)
+     (newline f)
+
+
+     (loop for n from 0 below 240 do 
+;;;; intensity
+;;; I really don't know what are the values, they're as ints
+	  (write (between 0 10 ) f)
+   (newline f))
+;;; CLIMAX!!!!
+     (loop for n from 0 below 10 do
+	  (write (between 50 90 ) f)
+   (newline f))
+;;; calmando
+     (loop for n from 0 below 6 do
+	  (write (between 0 30 ) f)
+   (newline f))
+;;; durations 8 seems to be 1/16th and 0 rest
+     (loop for n from 0 below 64 do
+	  (write (between 0 8 ) f)
+   (newline f))
+     (close-output-port f)))
+;;; run maxann
+(do-it)
+
+(system "devel/github/maxann-grace/maxann/maxanneal /tmp/tester.dat /tmp/out.scm")
+;;; WAIT for return 0
+(load "/tmp/out.scm")
+*maxanneal-midiout* ; show what we got
+;;; test it
+
+(define (mm f1)
+      (let ((time 0)
+            (key 0)
+            (dur 0))
+(process for n in f1 do
+         (set! time (car n))
+         (set! key (cadr n))
+         (set! dur (caddr n))
+        (mp:midi time dur key 100 0)
+        wait time)))
+;;; listen (car) is for some reason empty in some cases
+(sprout (mm (nth *maxanneal-midiout* 0))) (sprout (mm (nth *maxanneal-midiout* 1))) (sprout (mm (nth *maxanneal-midiout* 2))) (sprout (mm (nth *maxanneal-midiout* 3)))
+;;; the end
+
+
